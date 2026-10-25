@@ -1,0 +1,32 @@
+{
+  "name": "sun-and-moon",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "check:timeline": "node scripts/check-timeline.ts",
+    "shots": "node scripts/shots.mjs",
+    "verify": "node scripts/verify.mjs",
+    "assets": "uv run --python 3.11 scripts/prepare_assets.py",
+    "audio:mp3": "node scripts/encode-mp3.mjs",
+    "transcribe": "uv run --python 3.11 scripts/transcribe.py"
+  },
+  "dependencies": {
+    "@fontsource/im-fell-english": "^5.3.0",
+    "@fontsource/instrument-serif": "^5.3.0",
+    "@fontsource/pinyon-script": "^5.3.0",
+    "@fontsource/playfair-display": "^5.3.0",
+    "@fontsource/special-elite": "^5.3.0",
+    "three": "^0.186.1"
+  },
+  "devDependencies": {
+    "@types/three": "^0.186.0",
+    "playwright-core": "^1.64.1",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.5"
+  }
+}

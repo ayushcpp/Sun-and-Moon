@@ -1,0 +1,204 @@
+/* Colours from the painting. Timings arrive as custom properties from UI in config.ts. */
+:root {
+  --void: #000;
+  --moonbone: 230 220 200; /* #E6DCC8 */
+  --gilt: #c9a35f;
+  --ease-long: cubic-bezier(0.65, 0, 0.35, 1);
+  --ease-sine: cubic-bezier(0.37, 0, 0.63, 1);
+  --gutter: clamp(16px, 2.2vw, 36px);
+  /* A soft ink halo: invisible on black, it keeps small words legible over bright clouds and cloth. */
+  --halo: 0 0 2px var(--void), 0 0 5px var(--void), 0 0 12px rgb(0 0 0 / 0.7);
+  color-scheme: dark;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  background: var(--void);
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+#stage {
+  position: fixed;
+  inset: 0;
+}
+#stage canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.sm-ui,
+.sm-type {
+  font-family: 'IM Fell English', Georgia, serif;
+  font-weight: 400;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  user-select: none;
+  -webkit-user-select: none;
+}
+:where(.sm-ui button, button.sm-type) {
+  margin: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Hint, paused word and sound toggle */
+.sm-ui {
+  position: fixed;
+  z-index: 2;
+  left: calc(env(safe-area-inset-left, 0px) + var(--gutter));
+  right: calc(env(safe-area-inset-right, 0px) + var(--gutter));
+  bottom: calc(env(safe-area-inset-bottom, 0px) + var(--gutter));
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1.5rem;
+  font-size: 0.875rem;
+  line-height: 1.4;
+  letter-spacing: 0.02em;
+  color: rgb(var(--moonbone) / 0.85);
+  text-shadow: var(--halo);
+  pointer-events: none;
+  transition:
+    opacity var(--sm-toggle-fade) var(--ease-sine),
+    visibility 0s linear 0s;
+}
+.sm-ui.is-hidden {
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity var(--sm-toggle-fade) var(--ease-sine),
+    visibility 0s linear var(--sm-toggle-fade);
+}
+.sm-notes {
+  min-width: 0;
+}
+.sm-notes p {
+  margin: 0;
+}
+.sm-hint,
+.sm-paused,
+.sm-sound {
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity var(--sm-fade) var(--ease-sine),
+    visibility 0s linear var(--sm-fade);
+}
+.sm-hint {
+  --sm-fade: var(--sm-hint-fade);
+}
+.sm-paused,
+.sm-sound {
+  --sm-fade: var(--sm-toggle-fade);
+}
+/* inherit, not visible: a visible child would stay clickable inside the hidden (H) bar. */
+.sm-hint.is-on,
+.sm-paused.is-on,
+.sm-sound.is-on {
+  opacity: 1;
+  visibility: inherit;
+  transition:
+    opacity var(--sm-fade) var(--ease-sine),
+    visibility 0s linear 0s;
+}
+.sm-paused {
+  color: rgb(var(--moonbone) / 0.92);
+}
+.sm-sound {
+  flex: none;
+  /* A comfortable target around tiny type, without moving the text off the gutter. */
+  padding: 12px;
+  margin: -12px;
+  cursor: pointer;
+  pointer-events: auto;
+}
+.sm-sound.is-on {
+  transition:
+    opacity var(--sm-fade) var(--ease-sine),
+    visibility 0s linear 0s,
+    color 0.4s var(--ease-sine);
+}
+.sm-sound:hover {
+  color: rgb(var(--moonbone));
+}
+.sm-sound:focus {
+  outline: none;
+}
+.sm-sound:focus-visible {
+  outline: 1px solid var(--gilt);
+  outline-offset: -6px;
+}
+
+/* The cue for sound, below the stage, and how to start again, centred on the closed curtains. */
+.sm-cue,
+.sm-replay {
+  position: fixed;
+  z-index: 2;
+  left: 50%;
+  translate: -50% 0;
+  margin: 0;
+  white-space: nowrap;
+  text-shadow: var(--halo);
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity var(--sm-cue-fade) var(--ease-sine),
+    visibility 0s linear var(--sm-cue-fade);
+}
+.sm-cue {
+  bottom: calc(env(safe-area-inset-bottom, 0px) + var(--gutter));
+  font-size: 0.95rem;
+  font-style: italic;
+  letter-spacing: 0.04em;
+  color: rgb(var(--moonbone) / 0.88);
+  pointer-events: none;
+}
+.sm-replay {
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 18vh);
+  padding: 0.6rem 1.4rem;
+  font-size: clamp(1.1rem, 0.9rem + 0.8vw, 1.6rem);
+  font-style: italic;
+  letter-spacing: 0.06em;
+  color: var(--gilt);
+  cursor: pointer;
+}
+.sm-replay:hover {
+  color: rgb(var(--moonbone) / 0.95);
+}
+.sm-replay:focus {
+  outline: none;
+}
+.sm-replay:focus-visible {
+  outline: 1px solid var(--gilt);
+}
+.sm-cue.is-on,
+.sm-replay.is-on {
+  opacity: 1;
+  visibility: inherit;
+  transition:
+    opacity var(--sm-cue-fade) var(--ease-sine),
+    visibility 0s linear 0s;
+}
+.sm-cue.is-hidden,
+.sm-replay.is-hidden {
+  visibility: hidden;
+  opacity: 0;
+}
+
+/* Shown instead of everything when the film cannot run. */
+.sm-error {
+  inset: 0;
+  justify-content: center;
+  align-items: center;
+  margin: 0;
+  font-size: 1.05rem;
+  color: rgb(var(--moonbone) / 0.7);
+}
+

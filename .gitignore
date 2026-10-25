@@ -1,0 +1,19 @@
+# dependencies and build output
+node_modules/
+dist/
+__pycache__/
+
+# generated screenshots (npm run shots / verify)
+shots/
+
+# original input images and videos (kept local, not published)
+/*.mp4
+/*.png
+/*.jpeg
+/*.jpg
+archive/
+
+# editor / OS
+.DS_Store
+.vscode/
+*.log

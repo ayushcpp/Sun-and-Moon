@@ -1,0 +1,203 @@
+[
+ {
+  "id": "F1",
+  "title": "When the eyes close, the lid tears along a hard vertical seam at the eye corners (moon on every blink and the final sleep; sun mid-blink)",
+  "severity": "high",
+  "lenses": [
+   "eyes-poem"
+  ],
+  "owner": "src/render/faces.ts (lidMap() and the lid remap at :232-244); src/config.ts (EYES region, if a taper width is added)",
+  "evidence": "[eyes-poem] Area: src/render/faces.ts:232-244 (open = lo - up; travel = shut * open; p.y = y - travel above the band), seen at 1920x1080 on the bottom (moon) and top (sun) eyes. Checked at 1:1 and zoomed. Moon: at the full-closure frames of every moon blink sampled (t 27.10, 30.76, 36.87-36.93, 41.10, 46.35), both outer ends show a straight vertical cut about 100 px tall. Lashes outside the cut stay up; inside it, the lash band slides down, with stretched 1-px streaks along the cut (screen x about 297 on the left eye, about 1600 on the right). It stays on screen through the final sleep (48.3, 48.6) until the curtains cover it. Sun mid-blink (t 34.0, 42.85): the lash band moves down as a block with vertical sides and a black slot above it. Files: /tmp/claude-1000/-home-ayush-Video-claude-Code-Sun-and-Moon/002feb2e-6b4d-4dca-83e5-825de1bd59b7/scratchpad/review4/eyes-poem/corner_zoom.png (3x zoom, open vs shut), /tmp/claude-1000/-home-ayush-Video-claude-Code-Sun-and-Moon/002feb2e-6b4d-4dca-83e5-825de1bd59b7/scratchpad/review4/eyes-poem/blink_left.png, /tmp/claude-1000/-home-ayush-Video-claude-Code-Sun-and-Moon/002feb2e-6b4d-4dca-83e5-825de1bd59b7/scratchpad/review4/eyes-poem/lids_moon.png, /tmp/claude-1000/-home-ayush-Video-claude-Code-Sun-and-Moon/002feb2e-6b4d-4dca-83e5-825de1bd59b7/scratchpad/review4/eyes-poem/lids_sun.png, /tmp/claude-1000/-home-ayush-Video-claude-Code-Sun-and-Moon/002feb2e-6b4d-4dca-83e5-825de1bd59b7/scratchpad/review4/eyes-poem/blink_strip.jpg (30 fps, 36.77-37.13). Cause given by the lens: each picture column slides by travel = shut*(lo-up) at that column; at the blunt temple ends the lid opening (lo - up) goes from 0 to tens of px within a few columns, so neighbouring columns slide by very different amounts and the lash band shears into a vertical seam. The earlier eyes check (moon blink 30.55-30.92, 'no slit') looked for slits, not this shear.",
+  "fix": "Make the slide vary smoothly across x. Option 1: put a horizontally smoothed opening in a second pair of channels of lidMap(), e.g. a running max or a wide Gaussian of (lower - upper) along x, tapered to 0 over about 25-40 picture px from each tip; use it for the band/lash translation (travel_band = shut * openSmooth) and keep the real edge (up + shut*open) for where the eye is covered, so the lid still lands on the lower lid. Option 2: extend each eye's remap range past the tips over the outer lash flick, with travel fading to 0 there, so the outer lashes bend down instead of being cut. Re-check with a 30 fps strip zoomed 3x at both corners for moon 36.77-37.13, sun 33.84-34.12, and the final sleep at 48.0-49.0."
+ },
+ {
+  "id": "F2",
+  "title": "'Press Enter to restart' stays on screen through the whole replay if the viewer restarts or scrubs back within 0.4 s of the end",
+  "severity": "high",
+  "lenses": [
+   "code",
+   "robustness"
+  ],
+  "owner": "src/ui/ui.ts (setReplay at :75-78, dispose)",
+  "evidence": "[code, high] src/ui/ui.ts:75-78 (setReplay), :22 (later); 52.0-52.4 s, any screen size. setReplay(true) starts a 0.4 s timer (UI.replayDelaySeconds) that is never cancelled; setReplay(false) only removes the class, so the pending timer adds it back. Playwright at 1280x720: loaded ?t=51.3, waited for state.ended, pressed R straight away, waited 1.5 s: {t: 1.475, ended: false, replayOn: true, opacity: '1'}. Screenshot /tmp/claude-1000/-home-ayush-Video-claude-Code-Sun-and-Moon/002feb2e-6b4d-4dca-83e5-825de1bd59b7/scratchpad/review4/code/A_restart_race.png shows the prompt over the closed curtains of the restarted story. Nothing hides it again until the next end, so it stays over the dialogue and the poem for 52 s. Space, Enter, R or a tap in the first 0.4 s after the end all trigger it; a returning visitor pressing Enter as soon as the curtains meet is the likely case. [robustness, medium] Reproduced: seek to 51.8, wait for state.ended, press R; 1.2 s later t=1.21, playing, .sm-replay has is-on, opacity 0.855. ArrowLeft held across the end (scrubbing) or a fast Enter/Space hit the same window. Output: /tmp/claude-1000/-home-ayush-Video-claude-Code-Sun-and-Moon/002feb2e-6b4d-4dca-83e5-825de1bd59b7/scratchpad/review4/robustness/keys-end.out (line 'restart within 0.4s of end, +1.2s'). Repro: /tmp/claude-1000/-home-ayush-Video-claude-Code-Sun-and-Moon/002feb2e-6b4d-4dca-83e5-825de1bd59b7/scratchpad/review4/robustness/keys-end.mjs",
+  "fix": "Keep the timer id and cancel it. In ui.ts: let replayTimer = 0; setReplay(on) { clearTimeout(replayTimer); if (on) replayTimer = window.setTimeout(() => show(replay, true), UI.replayDelaySeconds * 1000); else show(replay, false); }. Also clear replayTimer in dispose(). (Both lenses proposed the same fix.)"
+ },
+ {
+  "id": "F3",
+  "title": "On touch screens 'Tap to restart' only works on the small text button; tapping the curtains anywhere else at the end does nothing",
+  "severity": "medium",
+  "lenses": [
+   "visual",
+   "robustness"
+  ],
+  "owner": "src/input.ts (onUp / touch pointerdown at :87-93) or src/main.ts (pointerup on film.canvas; 'replay' command at :82-84); alternative hit-area route: src/ui/ui.ts (:42-46), src/ui/ui.css",
+  "evidence": "[visual, medium] End screen, 390x844 touch (hasTouch, isMobile), from 52 s; src/ui/ui.ts:42-44 (replay button), src/input.ts:87-93 (touch pointerdown never issues a command). Real-time run from ?t=48 at 390x844 dpr 2 (script /tmp/claude-1000/-home-ayush-Video-claude-Code-Sun-and-Moon/002feb2e-6b4d-4dca-83e5-825de1bd59b7/scratchpad/review4/visual/bin/end.mjs). A tap on the closed curtains at (195, 295) left the state at {t: 52, ended: true}; a tap on the button restarted (t=0.046). The only responsive area is the button box, 148x41 CSS px (x 121-269, y 651-692). On a phone 'Tap to restart' reads as 'tap anywhere'. [robustness, low] src/ui/ui.ts:44-46 (the replay button is the only target), src/input.ts (no restart on the stage). At 390x844, dpr 2, touch: after the end a tap on the stage at (195,300) leaves t=52 and ended=true (it only unlocks the sound); only a tap inside the 148x41 px words restarts. The other prompt says 'Tap anywhere for sound', which teaches viewers a tap anywhere works. Output: /tmp/claude-1000/-home-ayush-Video-claude-Code-Sun-and-Moon/002feb2e-6b4d-4dca-83e5-825de1bd59b7/scratchpad/review4/robustness/phone-end.out. Repro: /tmp/claude-1000/-home-ayush-Video-claude-Code-Sun-and-Moon/002feb2e-6b4d-4dca-83e5-825de1bd59b7/scratchpad/review4/robustness/phone-end.mjs. Related: a tap-restart within 0.4 s of the end hits the F2 timer race.",
+  "fix": "Once the story has ended, treat any short tap/click on the stage as replay. Visual lens: in input.ts onUp, for a primary touch that started on the canvas (touchDownMs !== null, not inside CONTROLS), call onCommand('replay'); 'replay' already does nothing unless state.ended (main.ts:82-84), so taps during playback are unaffected. Alternative: while .sm-replay.is-on, give the button a full-viewport transparent hit area (inset:0 pseudo-element) and keep the text where it is. Robustness lens: in main.ts, listen for pointerup on film.canvas; when state.ended is true, the replay prompt is showing and e.pointerType === 'touch', call command('restart'). Desktop keeps Enter and the button."
+ },
+ {
+  "id": "F4",
+  "title": "On portrait phones the eyes climax fills a strip only 28% of the screen height, with 72% black, for about 25 s",
+  "severity": "medium",
+  "lenses": [
+   "visual"
+  ],
+  "owner": "src/config.ts (LAYOUT region: facesSpan / facesScale), src/timeline.ts (facesScale, new pan as a function of t); verify src/render/captions.ts follows",
+  "evidence": "[visual] 390x844 dpr 2, t 22-47 s. /tmp/claude-1000/-home-ayush-Video-claude-Code-Sun-and-Moon/002feb2e-6b4d-4dca-83e5-825de1bd59b7/scratchpad/review4/visual/phone/t030.00.png: rows with content run from y 595 to 1071 of 1688 (28%); everything above and below is black (see /tmp/claude-1000/-home-ayush-Video-claude-Code-Sun-and-Moon/002feb2e-6b4d-4dca-83e5-825de1bd59b7/scratchpad/review4/visual/phone/phone_sheet.jpg). The v2 review (direction/F1, visual/V1, eyes/E7) flagged this; the round-3 fix enlarged the eyes only 1.22x, so the climax still looks small on a phone.",
+  "fix": "For aspect < ~0.8, scale the faces to fill about 55-65% of the screen height instead of fitting the width. Add a slow eased horizontal pan as a pure function of t, from the left eye pair toward the right over facesPush [21.85, 52], seeded and deterministic, so each eye is seen large in turn. captions.ts already uses facesScale, so the poem words follow the picture. Re-check with: flock <gpu.lock> node scripts/shots.mjs --t 23,30,40,46 --size 390x844 --dpr 2."
+ },
+ {
+  "id": "F5",
+  "title": "Canvas fonts for the poem and dialogue load only when first drawn, so the first words show in a fallback typeface and then switch/reflow (worse on a hosted site)",
+  "severity": "medium",
+  "lenses": [
+   "robustness",
+   "code"
+  ],
+  "owner": "src/main.ts (boot: preload fonts alongside Stage.create), src/config.ts (font list next to POEM.faces / DIALOGUE.faces; fix stale comment at :710)",
+  "evidence": "[robustness, medium] Production build/fonts. Starts at about 24 s when the first poem words appear and lasts until each font arrives (about 25.8 s with 300 ms font latency); seen at 1920x1080, applies at every size. Fonts are imported in src/main.ts:1-8 and nothing loads them ahead of time; the only explicit load is the curtain title at src/render/curtains.ts:1495. The poem measures and draws text every frame (src/render/poem.ts:89-105, 722). Production build served under /sub/ with 300 ms delay on every .woff2: the browser requests Special Elite, Instrument Serif and Playfair Display 900 only once the poem uses them. document.fonts.check stays false for Special Elite and Instrument Serif until t\u224824.8 and for Playfair Display until t\u224825.77. Frames show 'you will' in a Courier-like stand-in and 'LOOK' in a wide Times-like font at t=24.30; by 24.90 they switch to Special Elite and Instrument Serif and the whole line reflows because widths are re-measured. 'OF' is Times Bold at 25.30 and Playfair at 25.87. Crop: /tmp/claude-1000/-home-ayush-Video-claude-Code-Sun-and-Moon/002feb2e-6b4d-4dca-83e5-825de1bd59b7/scratchpad/review4/robustness/fout/fout-crop.jpg. Sheet: /tmp/claude-1000/-home-ayush-Video-claude-Code-Sun-and-Moon/002feb2e-6b4d-4dca-83e5-825de1bd59b7/scratchpad/review4/robustness/fout/fout-sheet.jpg. Repro: run /tmp/claude-1000/-home-ayush-Video-claude-Code-Sun-and-Moon/002feb2e-6b4d-4dca-83e5-825de1bd59b7/scratchpad/review4/robustness/serve.mjs <dist> (port 5290), then /tmp/claude-1000/-home-ayush-Video-claude-Code-Sun-and-Moon/002feb2e-6b4d-4dca-83e5-825de1bd59b7/scratchpad/review4/robustness/fout.mjs. On localhost the fonts arrive in milliseconds, which is why earlier checks missed it. The first dialogue subtitles (IM Fell English, Pinyon, Instrument Serif italic, from 2.28 s) can show the same switch on a slow connection. [code, medium] src/main.ts (boot, no preload); src/render/poem.ts:89-105 (layout measures at first landing); src/render/dialogue.ts:100-131; stale comment src/config.ts:710 'Canvas fonts (loaded in main.ts)'. main.ts only imports the @fontsource CSS; the only explicit load is the curtains title (TITLE_FONT). Playwright probe on ?t=23.6: at t=23.90 Instrument Serif normal and italic, Playfair Display 900 and 900 italic, Pinyon Script, Special Elite were all 'unloaded'. Special Elite and Instrument Serif became available at t=24.084, one or two frames after 'you will' starts typing at 24.05 (first requested by measureText in layout()). Playfair still unloaded at 24.8. Word sprites are keyed on document.fonts.check so they redraw once the font arrives, but placement() uses fallback widths until then, so on tall screens the phrase visibly re-centres; repeats for each new face.",
+  "fix": "In boot() (src/main.ts), load every canvas face while the stage is created, with a time limit, before the clock starts. List the faces in config.ts next to POEM.faces and DIALOGUE.faces: '1em \"IM Fell English\"', 'italic 1em \"IM Fell English\"', '1em \"Instrument Serif\"', 'italic 1em \"Instrument Serif\"', '900 1em \"Playfair Display\"', 'italic 900 1em \"Playfair Display\"', '1em \"Pinyon Script\"', '1em \"Special Elite\"' (or derive them: [...Object.values(DIALOGUE.faces).map(f => `${f.style} ${f.weight} 32px ${f.family}`), ...Object.values(POEM.faces).map(([s, fam]) => `${s} 32px \"${fam}\"`)]). Then await Promise.race([Promise.all(faces.map(f => document.fonts.load(f))), new Promise(r => setTimeout(r, 3000))]) together with Stage.create. About 0.3 MB of woff2, overlapping texture loading. Then the config.ts:710 comment becomes true (see F13)."
+ },
+ {
+  "id": "F6",
+  "title": "Green/colour speckle column reproduced: 2 of 182 frames, both at t=39.75 in columns 733-734; likely a caption-sprite edge, not the eyes shader",
+  "severity": "medium",
+  "lenses": [
+   "eyes-poem"
+  ],
+  "owner": "src/render/poem.ts (stamp() at :257-261; wordSprite()/shapeSprite() at :169-250); optionally scripts/shots.mjs (green-pixel warning)",
+  "evidence": "[eyes-poem] Poem captions canvas, 1920x1080, mid-screen, y 453-699. Scanned 182 full 1920x1080 frames from 21.4-52 in 9 fresh browser runs under the lock, counting pixels with g > r+40 and g > b+40; 131 at default quality, 51 at ?quality=3. Hits: 2, both at t=39.75. Run B: 4 green pixels in column 734. Run D: 6 green pixels in columns 733-734, on the 5th of 5 renders of 39.75 (other 4 clean). 0 hits in 12 more renders of 39.75 in run F. 0 hits in 51 frames at ?quality=3 including 13 renders of 39.75 (at ~1.5% rate that does not rule out the bloom-on path). 0 hits in 62 frames at 1280x720, 3 phone frames and 12 cropped blink frames. Diff of glitch frame vs clean render of same t: only columns 733-734, rows 453-699 differ (236 px); max channel difference 6 elsewhere. No bloom halo on the hits. In the clean frame those columns hold only dim blush/background with no edge; at 39.75 the words 'your' and the landing 'heart' sit just beside them. Garbage colours in a 1-2 px column, the height of a glowing word sprite, appearing only sometimes, fits bilinear sampling past the edge of a GPU-backed sprite canvas into uninitialised backing memory; stamp() draws with fractional source rects (sx = ox + from, sw up to img.width) and fractional scaled destinations. No shader NaN/Inf seen: captions.ts discards a <= 0 before dividing by a, and lids() clamps its index. Not proven; layer could not be isolated without editing project files. Files: /tmp/claude-1000/-home-ayush-Video-claude-Code-Sun-and-Moon/002feb2e-6b4d-4dca-83e5-825de1bd59b7/scratchpad/review4/eyes-poem/glitchB/t039.75.png, /tmp/claude-1000/-home-ayush-Video-claude-Code-Sun-and-Moon/002feb2e-6b4d-4dca-83e5-825de1bd59b7/scratchpad/review4/eyes-poem/glitchD/Dt039.75.png, crops /tmp/claude-1000/-home-ayush-Video-claude-Code-Sun-and-Moon/002feb2e-6b4d-4dca-83e5-825de1bd59b7/scratchpad/review4/eyes-poem/g3975_col.png and /tmp/claude-1000/-home-ayush-Video-claude-Code-Sun-and-Moon/002feb2e-6b4d-4dca-83e5-825de1bd59b7/scratchpad/review4/eyes-poem/g3975_ctx.png. Grabber: /tmp/claude-1000/-home-ayush-Video-claude-Code-Sun-and-Moon/002feb2e-6b4d-4dca-83e5-825de1bd59b7/scratchpad/review4/eyes-poem/tools/grab.mjs (seeks with __sunMoon.clock.seek, scans in-page). Related: the code lens (F15) tested the sun eye-flare division-by-zero on this GPU and found no NaN/Inf, so it does not explain this column here.",
+  "fix": "In stamp(), snap the source rect to whole sprite pixels (sx = Math.floor(...), sw = Math.ceil(...) clamped to img.width) and add a guard band of at least 2 px of transparency to every sprite (pad + 2 in wordSprite/shapeSprite) so filtering never reaches the outermost texel. Also create the sprite canvases with getContext('2d', { willReadFrequently: true }) to keep them in CPU raster (drawn once and cached, small cost). To confirm: repeat '41.3,39.75' x 40 with the grabber before and after (expect ~1-2 hits before, 0 after), and once with imageSmoothingEnabled = false in stamp() as a quick A/B. Add the green-pixel scan to scripts/shots.mjs as a warning."
+ },
+ {
+  "id": "F7",
+  "title": "Temporary perf probe left in captions.ts would ship in the production build",
+  "severity": "medium",
+  "lenses": [
+   "code"
+  ],
+  "owner": "src/render/captions.ts (:36 DUMMY, :83-85 __capMode probe)",
+  "evidence": "[code] src/render/captions.ts:36 (const DUMMY = ...getContext('2d') // TEMP perf probe), :83-85 (window.__capMode read every frame, frame.ctx swapped to DUMMY). The probe allocates a canvas at module load and reads window.__capMode every frame; setting it disables the caption upload or draws the words into a hidden canvas. It is in the bundle produced by `vite build` (built to the scratch dir and checked). The file is being worked on by the perf lane, so this may be in-progress scaffolding, but it must not survive to the build step (HANDOFF item 7).",
+  "fix": "When the captions perf work lands, delete DUMMY and the three probe lines (`mode`, `if (mode & 2) ...`, `&& !(mode & 1)`). Before the build, run `grep -rn 'TEMP\\|__capMode' src` and expect no output."
+ },
+ {
+  "id": "F8",
+  "title": "Restart cuts from the lit closed curtains straight to black for one frame, then fades the same curtains back up, which reads as a blink",
+  "severity": "low",
+  "lenses": [
+   "visual"
+  ],
+  "owner": "src/main.ts (restart case, clock.seek at :79-83); src/config.ts (TIMELINE.theatreIn); src/timeline.ts if a 'restarted' flag is added to storyAt",
+  "evidence": "[visual] Enter or tap restart at 52 s, every screen size; src/main.ts:79-83 (clock.seek(0)), TIMELINE.theatreIn [0, 1.4] in src/config.ts. /tmp/claude-1000/-home-ayush-Video-claude-Code-Sun-and-Moon/002feb2e-6b4d-4dca-83e5-825de1bd59b7/scratchpad/review4/visual/endDesk_sheet.jpg: mean luma 59.9 on the end frame, 0.2 at restart+50 ms (t=0.03, pure black, with the fading 'Press Enter to restart' alone on black), and 38.8 at +0.5 s as the same closed curtains fade back in. Phone shows the same (/tmp/claude-1000/-home-ayush-Video-claude-Code-Sun-and-Moon/002feb2e-6b4d-4dca-83e5-825de1bd59b7/scratchpad/review4/visual/endPhone_sheet.jpg). Otherwise the restart works: starts from 0, curtains closed, prompt hides.",
+  "fix": "Restart into the lit closed curtains, e.g. clock.seek(TIMELINE.theatreIn[1], now) in the 'restart' case (main.ts:80); the frame there already matches the end frame and the dialogue still begins at 2.0. If the restart must be exactly t=0, have the theatre fade-in start from the lit level on a restart (pass a 'restarted' flag into storyAt), or fade the canvas to black over about 0.4 s before seeking."
+ },
+ {
+  "id": "F9",
+  "title": "Square pixel blocks show in the painted sky when it is magnified, clearly on phones and faintly at 1080p",
+  "severity": "low",
+  "lenses": [
+   "visual"
+  ],
+  "owner": "scripts/prepare_assets.py (:199, sky plate output) and the regenerated public/story/sky.jpg; alternative: the sky shader (src/render/ sky pass) and src/config.ts",
+  "evidence": "[visual] Storybook sky 2-22 s; most visible at 390x844 dpr 2 (e.g. t 12, 20.5). Source public/story/sky.jpg (1536x859, from 'Sun and Moon.jpeg'), written by scripts/prepare_assets.py:199. /tmp/claude-1000/-home-ayush-Video-claude-Code-Sun-and-Moon/002feb2e-6b4d-4dca-83e5-825de1bd59b7/scratchpad/review4/visual/sky_blocks.png: left, phone t=20.5, staircase blocks about 8-10 device px in the dark cloud texture next to the moon; right, 1080p t=20, faintly. /tmp/claude-1000/-home-ayush-Video-claude-Code-Sun-and-Moon/002feb2e-6b4d-4dca-83e5-825de1bd59b7/scratchpad/review4/visual/skyjpg_zoom.png shows the same block structure in the source plate. The plate is only 1536x859; on a phone it is stretched to 1688 device px tall, then the push enlarges it further.",
+  "fix": "Make a 2x sky plate in prepare_assets.py: Lanczos upscale plus a light edge-preserving smooth (e.g. bilateral filter), or an upscaler, saved at quality 93. Alternatively, add a small screen-space paper-grain dither (\u00b11-2/255) and a 1-texel blur in the sky shader when the texel-to-pixel ratio is above ~1.5, hiding the block edges without softening the stars (they are in sky_twinkle.png)."
+ },
+ {
+  "id": "F10",
+  "title": "The sound plays about 80-140 ms behind the picture because the audio output delay is never accounted for",
+  "severity": "low",
+  "lenses": [
+   "robustness"
+  ],
+  "owner": "src/soundtrack.ts (:21 latencyHint, :58/:64 offset and start, :80 drift check); src/main.ts (time passed to soundtrack.update)",
+  "evidence": "[robustness] Affects the whole film, in the dialogue subtitles and the poem's words. Measured by tracking every AudioBufferSourceNode.start together with ctx.getOutputTimestamp(). Scheduled position was -0.003 to -0.049 s against the story clock, so the code's own check (SOUND.syncTolerance 0.08) passes. Audible position was -0.08 to -0.139 s, because ctx.outputLatency is 0.072-0.08 s and baseLatency 0.021 s here and none is compensated. The schedule also starts from the frame's timestamp (frameT), about 17 ms older than the moment the clip is scheduled. Outputs: /tmp/claude-1000/-home-ayush-Video-claude-Code-Sun-and-Moon/002feb2e-6b4d-4dca-83e5-825de1bd59b7/scratchpad/review4/robustness/audio-sync.out ('driftHeard' values) and /tmp/claude-1000/-home-ayush-Video-claude-Code-Sun-and-Moon/002feb2e-6b4d-4dca-83e5-825de1bd59b7/scratchpad/review4/robustness/keys-end.out (-0.139 just after the click at t\u22485). On Bluetooth headphones outputLatency is often 150-250 ms.",
+  "fix": "In start(), schedule from what will be heard: const lag = ctx.outputLatency || ctx.baseLatency || 0; const offset = t + lag - TL.audio[clip]. In update(), compare against t + lag the same way. Pass a fresh time to soundtrack.update (clock.now(performance.now()) instead of the frame's timestamp). Use latencyHint 'interactive' (or a number such as 0.02) to reduce buffering delay."
+ },
+ {
+  "id": "F11",
+  "title": "Pausing while the WebGL context is lost leaves the sound playing",
+  "severity": "low",
+  "lenses": [
+   "robustness"
+  ],
+  "owner": "src/main.ts (togglePause :63-67, command(), webglcontextlost :175)",
+  "evidence": "[robustness] Rare: only during a GPU reset or driver crash. soundtrack.update() runs only inside requestAnimationFrame, and drawing stops while the context is lost. After loseContext(), pressing Space gives clock.paused=true, but the poem source is still live with a drift of 0.812 s 0.8 s later; it stops only when the context is restored. If the context never returns, the voice plays on over a frozen 'paused' story. Output: /tmp/claude-1000/-home-ayush-Video-claude-Code-Sun-and-Moon/002feb2e-6b4d-4dca-83e5-825de1bd59b7/scratchpad/review4/robustness/ctxloss.out. Repro: /tmp/claude-1000/-home-ayush-Video-claude-Code-Sun-and-Moon/002feb2e-6b4d-4dca-83e5-825de1bd59b7/scratchpad/review4/robustness/ctxloss.mjs",
+  "fix": "At the end of command() in main.ts, after any clock change, call soundtrack.update(clock.now(now), !clock.paused && !clock.now(now) >= TIMELINE.end), so the audio follows input even when no frames are drawn (fix text as given by the lens). Alternatively, keep a light timer for sound updates while contextLost is true."
+ },
+ {
+  "id": "F12",
+  "title": "Restoring the WebGL context while a resize is pending logs 25 WebGL warnings",
+  "severity": "low",
+  "lenses": [
+   "robustness"
+  ],
+  "owner": "src/main.ts (resize handling :116-120, webglcontextrestored :176); src/render/stage.ts (Stage.resize / composer targets)",
+  "evidence": "[robustness] Happens after a context restore that follows a window resize made while the context was lost. Lose the context, resize 2560x1080 -> 1920x1080, restore: 25 copies of 'WebGL: INVALID_OPERATION: delete: object does not belong to this context' (/tmp/claude-1000/-home-ayush-Video-claude-Code-Sun-and-Moon/002feb2e-6b4d-4dca-83e5-825de1bd59b7/scratchpad/review4/robustness/resize-ctx.out). A restore without a pending resize logs none (ctxloss.out). Picture recovers correctly either way (frames/c2-restored.jpg), so only console noise. Likely cause, not confirmed: film.resize() resizes or disposes render targets whose GPU handles belonged to the lost context.",
+  "fix": "Optional. On webglcontextrestored, run the pending resize before the first render. Or, in Stage.resize, recreate the off-screen render targets (composer targets) instead of disposing them when the context was lost in between."
+ },
+ {
+  "id": "F13",
+  "title": "Stale comments that point to things that no longer exist",
+  "severity": "low",
+  "lenses": [
+   "code"
+  ],
+  "owner": "src/render/shaders/final.ts (:2), src/clock.ts (:48), src/config.ts (:710)",
+  "evidence": "[code] final.ts:2 says 'Contract (host: the final pass in pipeline.ts)', but there is no pipeline.ts (the host is FINAL_FRAGMENT in render/stage.ts). clock.ts:48 says setRate is for 'prefers-reduced-motion toggled mid-film', but reduced motion no longer changes the rate (main.ts only passes it to storyAt). config.ts:710 says canvas fonts are 'loaded in main.ts', which they are not. Overlaps: the clock.ts comment goes away with the setRate removal in F14; config.ts:710 is fixed by the font preload in F5.",
+  "fix": "final.ts:2: change to 'host: FINAL_FRAGMENT in render/stage.ts'. Remove the clock.ts comment together with setRate (F14). Fix config.ts:710 together with the font preload (F5)."
+ },
+ {
+  "id": "F14",
+  "title": "Dead code and unused config keys",
+  "severity": "low",
+  "lenses": [
+   "code"
+  ],
+  "owner": "src/clock.ts (:13 rate param, :48-53 setRate), src/render/shaders/common.ts (:22 WORLD_VERTEX), src/lib/math.ts (:21 easeInOutCubic), src/lib/random.ts (:16 hash2), src/config.ts (:649-653 CURTAINS.paint.cream/creamShade)",
+  "evidence": "[code] Searched all of src/ and scripts/. Clock.setRate is never called and the clock is always built with rate 1. WORLD_VERTEX, easeInOutCubic and hash2 are exported but never imported. A script checking every config key against src/ and scripts/ found CURTAINS.paint.cream and creamShade unused: curtains.ts uses P.blue, cloth, clothDeep, clothLit, floor, gold, goldDeep, goldLight, ink, night, nightWash, rose, sepia and wash, but no cream. The clouds are now the painting's cut-outs, yet the comment at config.ts:649 still says 'the clouds' cream and shade'.",
+  "fix": "Delete setRate and the rate field/param, WORLD_VERTEX, easeInOutCubic, hash2, and paint.cream/creamShade. Reword config.ts:649 to 'The night ground of the frame's panels.'"
+ },
+ {
+  "id": "F15",
+  "title": "Shader undefined behaviour: division by zero in the sun's eye flare, and reversed smoothstep edges",
+  "severity": "low",
+  "lenses": [
+   "code"
+  ],
+  "owner": "src/render/faces.ts (:311 flare, :249, :302), src/render/stage.ts (:119), src/render/curtains.ts (more reversed smoothsteps); src/config.ts (:415 EYES.glow.rays.sun) for context",
+  "evidence": "[code] For the sun's eyes ray.x = 0 (EYES.glow.rays.sun = [0, 1, 0], config.ts:415), so `o.x / (ray.x * ir.z)` divides by zero and gives 0/0 on the column or row where p is exactly on the iris centre; the result is then multiplied by ray.z = 0. GLSL ES calls this undefined. Tested the exact expression on this GPU (Chrome, ANGLE-GL, Radeon) with o.x=0, o.y=0 and both >0: no NaN or Inf in any case, so it does not explain the HANDOFF's 1-px green/red column here (see F6). A GPU whose max() propagates NaN would draw a NaN line through the sun's irises. smoothstep(e0, e1, x) with e0 > e1 is also undefined in the GLSL ES 3.0 spec (stage.ts:119, faces.ts:249, :302, and more in curtains.ts), although ANGLE and desktop drivers compute the plain formula.",
+  "fix": "faces.ts:311: skip the flare when ray.z == 0 (`float flare = ray.z > 0.0 ? ... : 0.0;`) or divide by `max(ray.x * ir.z, 1e-3)`. Write the reversed ramps as `1.0 - smoothstep(-w, w, x)` (stage.ts:119), `1.0 - smoothstep(0.85, 1.0, f)` (faces.ts:249) and `1.0 - smoothstep(lo - uFeather, lo, p.y)` (faces.ts:302), and likewise in curtains.ts."
+ },
+ {
+  "id": "F16",
+  "title": "Tunables hard-coded outside config.ts, including a 16 px root font size that can misplace the calm patch",
+  "severity": "low",
+  "lenses": [
+   "code"
+  ],
+  "owner": "src/render/curtains.ts (:1600, :1614, :1621), src/render/poem.ts (:709), src/ui/ui.ts, src/ui/ui.css (:164-168), src/config.ts (CURTAINS.calm at :634, CURTAINS and POEM regions)",
+  "evidence": "[code] src/render/curtains.ts:1621 (const rem = 16), :1614 (flicker rates 7.3 / 12.9 and weights 0.6 / 0.4), :1600 (valance 0.62); src/render/poem.ts:709 (poem fades in over reveal 0..0.6); src/ui/ui.css:164-168 (18vh and the font clamp, duplicated in CURTAINS.calm at config.ts:634). The calm patch and print-free patch under the prompt are computed in JS from CURTAINS.calm assuming 1rem = 16 px, while the button is sized by CSS rem; if the browser default font size is not 16 px (accessibility setting), the button moves/resizes but the patch does not. The 18% position and font clamp live in two places (ui.css and config.ts), so changing one silently breaks the other. curtains.ts line numbers are moving because another agent is editing it.",
+  "fix": "In curtains.ts use `const rem = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;`. In ui.ts set `--sm-replay-bottom` and `--sm-replay-font` from CURTAINS.calm, the same way fade timings are already passed, and use those variables in ui.css. Move the flicker rates, the 0.62 swag depth and the poem's 0.6 reveal fade into the CURTAINS and POEM regions."
+ },
+ {
+  "id": "F17",
+  "title": "shots.mjs exits 0 when the page throws, fails to boot or logs GL errors",
+  "severity": "low",
+  "lenses": [
+   "code"
+  ],
+  "owner": "scripts/shots.mjs (:28-30, :36-37, :45)",
+  "evidence": "[code] Problems (console errors and warnings, pageerror, boot error) are collected and printed, but the process still exits 0. verify.mjs runs it through execFileSync, which only fails on non-zero exit, so `npm run verify` reports success over broken frames. HANDOFF lists this as a known leftover.",
+  "fix": "At the end: `if (problems.some((p) => /pageerror|boot error|GL_INVALID|error:/.test(p))) process.exitCode = 1;`"
+ },
+ {
+  "id": "F18",
+  "title": "PLAN.md calls both puppets rod puppets; the moon hangs on a string",
+  "severity": "low",
+  "lenses": [
+   "code"
+  ],
+  "owner": "PLAN.md (:5)",
+  "evidence": "[code] PLAN.md:5 says the moon and sun are 'hung like rod puppets'. The code and config say the moon is lowered on a string (TIMELINE.moonIn comment, config.ts:31-33; PUPPET.moon.pivot +0.75 at config.ts:161-168) and only the sun is on a rod (pivot -0.65). The rest of PLAN.md matches the code: the timeline table (1.6-6.2, 21.8-23.7, 22.0-49.8, 47.4-51.6, 52), the 18% prompt position, the keys, the governor, the 20 Hz envelope and the audio lengths (19.27 s and 28.72 s by ffprobe).",
+  "fix": "PLAN.md:5: 'the moon hung on a string and the sun held on a rod, like puppets'."
+ }
+]
